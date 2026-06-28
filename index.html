@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pool Field App</title>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue: #0057FF; --blue-dark: #0040CC; --blue-light: #EEF3FF;
+    --surface: #F7F8FA; --card: #FFFFFF; --border: #E2E6ED;
+    --text: #111827; --muted: #6B7280;
+    --green: #059669; --green-light: #ECFDF5;
+    --amber: #D97706; --amber-light: #FFFBEB;
+    --red: #DC2626; --red-light: #FEF2F2;
+  }
+  body { font-family: 'Inter', sans-serif; background: var(--surface); color: var(--text); min-height: 100vh; max-width: 480px; margin: 0 auto; }
+
+  .header { background: var(--blue); color: white; padding: 16px 20px 14px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .header-icon { width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .header h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+  .header p { font-size: 12px; opacity: 0.75; margin-top: 1px; }
+  .tech-badge { background: rgba(255,255,255,0.18); border-radius: 20px; padding: 4px 10px; font-size: 12px; font-weight: 600; }
+
+  .screen { display: none; padding: 16px; }
+  .screen.active { display: block; }
+
+  .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 16px; margin-bottom: 12px; }
+  .card-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 8px; }
+
+  input, textarea, select { width: 100%; font-family: 'Inter', sans-serif; font-size: 15px; color: var(--text); border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 12px; outline: none; transition: border-color 0.15s; background: white; }
+  input:focus, textarea:focus, select:focus { border-color: var(--blue); }
+  textarea { resize: none; line-height: 1.5; }
+
+  .btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 13px 16px; border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; border: none; transition: opacity 0.15s, transform 0.1s; }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--blue); color: white; }
+  .btn-primary:hover { background: var(--blue-dark); }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-secondary { background: white; color: var(--text); border: 1.5px solid var(--border); }
+  .btn-green { background: var(--green); color: white; }
+  .btn-sm { width: auto; padding: 7px 14px; font-size: 13px; border-radius: 7px; }
+
+  .ai-bubble { background: var(--blue-light); border-left: 3px solid var(--blue); border-radius: 0 10px 10px 0; padding: 12px 14px; margin-bottom: 12px; font-size: 14px; line-height: 1.55; color: #1a2a4a; }
+  .ai-bubble strong { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--blue); margin-bottom: 4px; }
+  .user-bubble { background: #f0f0f0; border-radius: 10px; padding: 10px 13px; margin-bottom: 10px; font-size: 14px; line-height: 1.5; color: var(--text); }
+  .user-bubble strong { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 3px; }
+
+  /* Option blocks — Recommended vs Repair */
+  .option-block { border-radius: 12px; border: 2px solid var(--border); padding: 14px; margin-bottom: 12px; }
+  .option-block.recommended { border-color: var(--blue); background: var(--blue-light); }
+  .option-block.repair { border-color: var(--amber); background: var(--amber-light); }
+  .option-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .option-tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 9px; border-radius: 20px; }
+  .tag-recommended { background: var(--blue); color: white; }
+  .tag-repair { background: var(--amber); color: white; }
+  .option-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .option-reason { font-size: 13px; color: var(--muted); margin-bottom: 10px; line-height: 1.45; }
+
+  .part-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .part-item:last-child { border-bottom: none; }
+  .part-check { width: 20px; height: 20px; flex-shrink: 0; border: 2px solid var(--border); border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; margin-top: 1px; transition: all 0.15s; }
+  .part-check.checked { background: var(--blue); border-color: var(--blue); color: white; }
+  .part-info { flex: 1; }
+  .part-name { font-size: 14px; font-weight: 500; }
+  .part-number { font-size: 12px; color: var(--blue); margin-top: 2px; font-family: monospace; }
+  .part-detail { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+  .labor-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .labor-row label { font-size: 14px; font-weight: 500; white-space: nowrap; }
+  .labor-row input { max-width: 80px; text-align: center; }
+  .labor-row span { font-size: 13px; color: var(--muted); }
+
+  .summary-row { display: flex; justify-content: space-between; font-size: 14px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-row .label { color: var(--muted); }
+  .summary-row .value { font-weight: 500; }
+
+  /* Summary option sections */
+  .summary-option { border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+  .summary-option.rec { background: var(--blue-light); border: 1.5px solid var(--blue); }
+  .summary-option.rep { background: var(--amber-light); border: 1.5px solid var(--amber); }
+  .summary-option-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .summary-option.rec .summary-option-title { color: var(--blue); }
+  .summary-option.rep .summary-option-title { color: var(--amber); }
+  .summary-part-line { font-size: 13px; padding: 4px 0; border-bottom: 1px solid rgba(0,0,0,0.06); display: flex; justify-content: space-between; gap: 8px; }
+  .summary-part-line:last-child { border-bottom: none; }
+  .summary-part-pn { font-family: monospace; font-size: 12px; color: var(--blue); }
+
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .pill-blue { background: var(--blue-light); color: var(--blue); }
+  .pill-amber { background: var(--amber-light); color: var(--amber); }
+  .pill-red { background: var(--red-light); color: var(--red); }
+
+  .sent-icon { width: 64px; height: 64px; background: var(--green-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto 16px; }
+  .sent-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 20px; text-align: center; }
+  .sent-card h2 { font-size: 20px; margin-bottom: 6px; }
+  .sent-card p { font-size: 14px; color: var(--muted); line-height: 1.5; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 18px 0 8px; }
+  .bottom-bar { position: sticky; bottom: 0; background: var(--surface); padding: 12px 16px 20px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="header-icon">🌊</div>
+    <div><h1>Pool Field App</h1><p>Diagnosis & Quote Builder</p></div>
+  </div>
+  <div class="tech-badge">Russell</div>
+</div>
+
+<!-- SCREEN 1: Job Info -->
+<div class="screen active" id="screen-job">
+  <p class="section-title">Job Details</p>
+  <div class="card">
+    <div class="card-label">Customer Name</div>
+    <input type="text" id="customer-name" placeholder="e.g. John Smith" />
+  </div>
+  <div class="card">
+    <div class="card-label">Address</div>
+    <input type="text" id="customer-address" placeholder="123 Oak Street" />
+  </div>
+  <div class="info-grid">
+    <div class="card">
+      <div class="card-label">Type</div>
+      <select id="job-type">
+        <option value="">Select...</option>
+        <option>Pool</option>
+        <option>Spa / Hot Tub</option>
+        <option>Pool + Spa Combo</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="card-label">Urgency</div>
+      <select id="job-urgency">
+        <option value="">Select...</option>
+        <option>Can wait</option>
+        <option>This week</option>
+        <option>Urgent</option>
+      </select>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-label">Equipment & Approximate Age</div>
+    <input type="text" id="equipment-age" placeholder="e.g. Hayward pump, ~8 years old" />
+  </div>
+  <div class="card">
+    <div class="card-label">What did you find? Describe the problem.</div>
+    <textarea id="findings" rows="4" placeholder="e.g. Pump is humming but not turning. Motor shaft spins by hand but trips breaker when powered on..."></textarea>
+  </div>
+  <div style="height:80px"></div>
+  <div class="bottom-bar">
+    <button class="btn btn-primary" onclick="startDiagnosis()" id="diagnose-btn">
+      <span>🔍</span> Diagnose with AI
+    </button>
+  </div>
+</div>
+
+<!-- SCREEN 2: AI Diagnosis -->
+<div class="screen" id="screen-diagnosis">
+  <p class="section-title">AI Diagnosis</p>
+  <div id="chat-container"></div>
+  <div class="card" id="confirm-card" style="display:none">
+    <div class="card-label">Does this match what you found?</div>
+    <div style="display:flex; gap:8px; margin-top:4px;">
+      <button class="btn btn-primary btn-sm" onclick="confirmDiagnosis(true)">✓ Yes, looks right</button>
+      <button class="btn btn-secondary btn-sm" onclick="confirmDiagnosis(false)">✗ Not quite</button>
+    </div>
+  </div>
+  <div class="card" id="correction-card" style="display:none">
+    <div class="card-label">What did I get wrong?</div>
+    <textarea id="correction-text" rows="3" placeholder="Tell me more about what you're seeing..."></textarea>
+    <div style="margin-top:8px">
+      <button class="btn btn-primary btn-sm" onclick="sendCorrection()">Update diagnosis</button>
+    </div>
+  </div>
+  <div style="height:20px"></div>
+</div>
+
+<!-- SCREEN 3: Parts & Labor -->
+<div class="screen" id="screen-parts">
+  <p class="section-title">Option A — Recommended</p>
+  <div class="option-block recommended">
+    <div class="option-header">
+      <span class="option-tag tag-recommended">⭐ Recommended</span>
+    </div>
+    <div class="option-title" id="rec-title">Full Replacement</div>
+    <div class="option-reason" id="rec-reason"></div>
+    <div id="rec-parts-list"></div>
+  </div>
+
+  <p class="section-title">Option B — Repair (May Work)</p>
+  <div class="option-block repair">
+    <div class="option-header">
+      <span class="option-tag tag-repair">🔧 Repair Option</span>
+    </div>
+    <div class="option-title" id="rep-title">Targeted Repair</div>
+    <div class="option-reason" id="rep-reason"></div>
+    <div id="rep-parts-list"></div>
+  </div>
+
+  <p class="section-title">Labor</p>
+  <div class="card">
+    <div class="card-label">Estimated repair time</div>
+    <div class="labor-row">
+      <label>Hours:</label>
+      <input type="number" id="labor-hours" value="1" min="0.5" max="8" step="0.5" />
+      <span>hrs @ $165/hr</span>
+    </div>
+  </div>
+
+  <p class="section-title">Tech Notes</p>
+  <div class="card">
+    <textarea id="tech-notes" rows="3" placeholder="Anything else the office should know — access issues, customer concerns, follow-up items..."></textarea>
+  </div>
+  <div style="height:80px"></div>
+  <div class="bottom-bar">
+    <button class="btn btn-primary" onclick="goToSummary()">Review & Send to Office →</button>
+  </div>
+</div>
+
+<!-- SCREEN 4: Summary -->
+<div class="screen" id="screen-summary">
+  <p class="section-title">Quote Summary</p>
+  <div class="card" id="summary-job-info"></div>
+
+  <p class="section-title">Diagnosis</p>
+  <div class="card" id="summary-diagnosis" style="font-size:14px; line-height:1.55; color:#1a2a4a;"></div>
+
+  <p class="section-title">Quote Options for Office</p>
+  <div id="summary-options"></div>
+
+  <p class="section-title">Labor</p>
+  <div class="card" id="summary-labor"></div>
+
+  <div class="card" id="summary-notes-card" style="display:none">
+    <div class="card-label">Tech Notes</div>
+    <div id="summary-notes" style="font-size:14px; color:var(--muted); line-height:1.5;"></div>
+  </div>
+
+  <div style="height:80px"></div>
+  <div class="bottom-bar">
+    <button class="btn btn-green" onclick="sendToOffice()" id="send-btn">
+      <span>📤</span> Send to Office
+    </button>
+  </div>
+</div>
+
+<!-- SCREEN 5: Sent -->
+<div class="screen" id="screen-sent">
+  <div style="padding-top:40px">
+    <div class="sent-card">
+      <div class="sent-icon">✓</div>
+      <h2>Sent to Office</h2>
+      <p id="sent-message"></p>
+      <div style="margin-top:20px">
+        <button class="btn btn-primary" onclick="startNew()">Start New Job</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── EmailJS Init ─────────────────────────────────────────
+emailjs.init('evH2fgFTpPvy7HR4I');
+
+const EMAILJS_SERVICE = 'service_kt140oi';
+const EMAILJS_TEMPLATE = 'template_v8zez9o';
+const OFFICE_EMAILS = ['MJHsolutions.utah@gmail.com', 'jay@hallspoolandspa.com'];
+
+// ─── State ───────────────────────────────────────────────
+let state = {
+  customer: '', address: '', jobType: '', urgency: '', equipmentAge: '',
+  findings: '', diagnosisText: '',
+  recTitle: '', recReason: '', recParts: [],
+  repTitle: '', repReason: '', repParts: [],
+  laborHours: 1, notes: '', chatHistory: []
+};
+
+// ─── Navigation ──────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ─── STEP 1: Start Diagnosis ─────────────────────────────
+async function startDiagnosis() {
+  const customer = document.getElementById('customer-name').value.trim();
+  const address = document.getElementById('customer-address').value.trim();
+  const jobType = document.getElementById('job-type').value;
+  const urgency = document.getElementById('job-urgency').value;
+  const equipmentAge = document.getElementById('equipment-age').value.trim();
+  const findings = document.getElementById('findings').value.trim();
+
+  if (!customer || !findings || !jobType) {
+    alert('Please fill in customer name, job type, and your findings.');
+    return;
+  }
+
+  state.customer = customer; state.address = address; state.jobType = jobType;
+  state.urgency = urgency; state.equipmentAge = equipmentAge; state.findings = findings;
+
+  const btn = document.getElementById('diagnose-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Analyzing...';
+
+  showScreen('screen-diagnosis');
+  document.getElementById('chat-container').innerHTML = '';
+  addUserBubble(`Field notes: ${findings}${equipmentAge ? '\nEquipment: ' + equipmentAge : ''}`);
+
+  const systemPrompt = `You are an expert pool and spa repair technician assistant helping Russell, a 20-year veteran field tech, confirm diagnoses and build two-option quotes.
+
+COMPANY PHILOSOPHY: Prefer full equipment replacement over repairs when the equipment is aging or the failure suggests underlying wear — this is better for the customer long-term and avoids repeat service calls. Be honest and practical.
+
+REPLACEMENT THRESHOLDS (general guide):
+- Pumps/motors: recommend replacement if 4+ years old OR if failure is motor-related (hum, seized, capacitor) — even on newer units
+- Heaters: recommend replacement if 4+ years old or heat exchanger/ignition issues
+- Filters: recommend replacement if 4+ years old with recurring issues
+- Small parts (O-rings, seals, unions, fittings): always repair, low cost
+
+YOUR RESPONSE MUST follow this EXACT format (no deviations):
+
+DIAGNOSIS:
+[2-3 sentence plain-language diagnosis. Peer-to-peer tone with Russell.]
+
+OPTION_A_TITLE: [e.g. "Full Pump Replacement"]
+OPTION_A_REASON: [1-2 sentences why replacement is recommended given age/failure type]
+PART_A: [Exact part name] | [Part number or cross-reference] | [Brief note e.g. "direct replacement"]
+PART_A: [additional parts if needed]
+
+OPTION_B_TITLE: [e.g. "Capacitor Replacement"]
+OPTION_B_REASON: [1-2 sentences honest caveat — may work but not guaranteed given age/condition]
+PART_B: [Exact part name] | [Part number or cross-reference] | [Brief note]
+PART_B: [additional parts if needed]
+
+DIAGNOSIS_COMPLETE`;
+
+  state.chatHistory = [{
+    role: 'user',
+    content: `Customer: ${customer}\nJob type: ${jobType}\nUrgency: ${urgency}\nEquipment & age: ${equipmentAge || 'unknown'}\n\nField findings: ${findings}`
+  }];
+
+  await callAI(systemPrompt);
+  btn.disabled = false;
+  btn.innerHTML = '<span>🔍</span> Diagnose with AI';
+}
+
+// ─── AI Call ─────────────────────────────────────────────
+async function callAI(systemPrompt) {
+  try {
+    const response = await fetch('/.netlify/functions/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1200, system: systemPrompt, messages: state.chatHistory })
+    });
+
+    const data = await response.json();
+    const text = data.content.map(b => b.text || '').join('');
+    state.chatHistory.push({ role: 'assistant', content: text });
+
+    // Parse structured response
+    parseAIResponse(text);
+
+    // Clean display text
+    const cleanText = text
+      .replace(/DIAGNOSIS_COMPLETE/g, '')
+      .replace(/OPTION_A_TITLE:.*/g, '').replace(/OPTION_A_REASON:.*/g, '')
+      .replace(/OPTION_B_TITLE:.*/g, '').replace(/OPTION_B_REASON:.*/g, '')
+      .replace(/PART_A:.*/g, '').replace(/PART_B:.*/g, '')
+      .replace(/DIAGNOSIS:\n?/g, '')
+      .trim();
+
+    state.diagnosisText = cleanText;
+    addAIBubble(cleanText);
+    document.getElementById('confirm-card').style.display = 'block';
+
+  } catch (err) {
+    addAIBubble('⚠️ Connection issue. Check your signal and try again.');
+  }
+}
+
+function parseAIResponse(text) {
+  const lines = text.split('\n');
+  let recParts = [], repParts = [];
+  let recTitle = '', recReason = '', repTitle = '', repReason = '';
+
+  lines.forEach(line => {
+    if (line.startsWith('OPTION_A_TITLE:')) recTitle = line.replace('OPTION_A_TITLE:', '').trim();
+    else if (line.startsWith('OPTION_A_REASON:')) recReason = line.replace('OPTION_A_REASON:', '').trim();
+    else if (line.startsWith('OPTION_B_TITLE:')) repTitle = line.replace('OPTION_B_TITLE:', '').trim();
+    else if (line.startsWith('OPTION_B_REASON:')) repReason = line.replace('OPTION_B_REASON:', '').trim();
+    else if (line.startsWith('PART_A:')) {
+      const parts = line.replace('PART_A:', '').trim().split('|');
+      recParts.push({ name: (parts[0]||'').trim(), number: (parts[1]||'').trim(), note: (parts[2]||'').trim(), checked: true });
+    } else if (line.startsWith('PART_B:')) {
+      const parts = line.replace('PART_B:', '').trim().split('|');
+      repParts.push({ name: (parts[0]||'').trim(), number: (parts[1]||'').trim(), note: (parts[2]||'').trim(), checked: true });
+    }
+  });
+
+  if (recTitle) state.recTitle = recTitle;
+  if (recReason) state.recReason = recReason;
+  if (repTitle) state.repTitle = repTitle;
+  if (repReason) state.repReason = repReason;
+  if (recParts.length) state.recParts = recParts;
+  if (repParts.length) state.repParts = repParts;
+}
+
+// ─── Chat helpers ─────────────────────────────────────────
+function addAIBubble(text) {
+  const el = document.createElement('div');
+  el.className = 'ai-bubble';
+  el.innerHTML = `<strong>AI Assistant</strong>${text.replace(/\n/g, '<br>')}`;
+  document.getElementById('chat-container').appendChild(el);
+  el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+function addUserBubble(text) {
+  const el = document.createElement('div');
+  el.className = 'user-bubble';
+  el.innerHTML = `<strong>Russell</strong>${text.replace(/\n/g, '<br>')}`;
+  document.getElementById('chat-container').appendChild(el);
+}
+
+// ─── Confirm or correct ───────────────────────────────────
+function confirmDiagnosis(correct) {
+  document.getElementById('confirm-card').style.display = 'none';
+  if (correct) { buildPartsScreen(); showScreen('screen-parts'); }
+  else { document.getElementById('correction-card').style.display = 'block'; }
+}
+async function sendCorrection() {
+  const correction = document.getElementById('correction-text').value.trim();
+  if (!correction) return;
+  document.getElementById('correction-card').style.display = 'none';
+  addUserBubble(correction);
+  state.chatHistory.push({ role: 'user', content: correction });
+  const sys = `You are an expert pool and spa repair technician assistant. Update your diagnosis based on Russell's correction. Use the same structured format with DIAGNOSIS:, OPTION_A_TITLE:, OPTION_A_REASON:, PART_A:, OPTION_B_TITLE:, OPTION_B_REASON:, PART_B: lines. End with DIAGNOSIS_COMPLETE.`;
+  await callAI(sys);
+  document.getElementById('correction-text').value = '';
+}
+
+// ─── Build parts screen ───────────────────────────────────
+function buildPartsScreen() {
+  document.getElementById('rec-title').textContent = state.recTitle || 'Full Replacement';
+  document.getElementById('rec-reason').textContent = state.recReason;
+  document.getElementById('rep-title').textContent = state.repTitle || 'Targeted Repair';
+  document.getElementById('rep-reason').textContent = state.repReason;
+
+  document.getElementById('rec-parts-list').innerHTML = renderPartsList(state.recParts, 'rec');
+  document.getElementById('rep-parts-list').innerHTML = renderPartsList(state.repParts, 'rep');
+}
+
+function renderPartsList(parts, prefix) {
+  if (!parts.length) return `<div style="color:var(--muted);font-size:13px;padding:6px 0;">No parts identified yet.</div>`;
+  return parts.map((p, i) => `
+    <div class="part-item">
+      <div class="part-check checked" onclick="togglePart('${prefix}',${i})" id="${prefix}-check-${i}">✓</div>
+      <div class="part-info">
+        <div class="part-name">${p.name}</div>
+        ${p.number ? `<div class="part-number">#${p.number}</div>` : ''}
+        ${p.note ? `<div class="part-detail">${p.note}</div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function togglePart(prefix, i) {
+  const list = prefix === 'rec' ? state.recParts : state.repParts;
+  list[i].checked = !list[i].checked;
+  const el = document.getElementById(`${prefix}-check-${i}`);
+  el.className = `part-check ${list[i].checked ? 'checked' : ''}`;
+  el.textContent = list[i].checked ? '✓' : '';
+}
+
+// ─── Go to summary ────────────────────────────────────────
+function goToSummary() {
+  state.laborHours = parseFloat(document.getElementById('labor-hours').value) || 1;
+  state.notes = document.getElementById('tech-notes').value.trim();
+  buildSummary();
+  showScreen('screen-summary');
+}
+
+function buildSummary() {
+  const laborCost = state.laborHours * 165;
+  const urgencyColor = state.urgency === 'Urgent' ? 'pill-red' : state.urgency === 'This week' ? 'pill-amber' : 'pill-blue';
+
+  document.getElementById('summary-job-info').innerHTML = `
+    <div class="summary-row"><span class="label">Customer</span><span class="value">${state.customer}</span></div>
+    ${state.address ? `<div class="summary-row"><span class="label">Address</span><span class="value">${state.address}</span></div>` : ''}
+    <div class="summary-row"><span class="label">Type</span><span class="value">${state.jobType}</span></div>
+    ${state.equipmentAge ? `<div class="summary-row"><span class="label">Equipment</span><span class="value">${state.equipmentAge}</span></div>` : ''}
+    <div class="summary-row"><span class="label">Urgency</span><span class="value"><span class="pill ${urgencyColor}">${state.urgency}</span></span></div>
+  `;
+
+  document.getElementById('summary-diagnosis').innerHTML = state.diagnosisText.replace(/\n/g, '<br>');
+
+  const recSelected = state.recParts.filter(p => p.checked);
+  const repSelected = state.repParts.filter(p => p.checked);
+
+  document.getElementById('summary-options').innerHTML = `
+    <div class="summary-option rec">
+      <div class="summary-option-title">⭐ Option A — ${state.recTitle || 'Recommended Replacement'}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">${state.recReason}</div>
+      ${recSelected.map(p => `
+        <div class="summary-part-line">
+          <span>${p.name}</span>
+          <span class="summary-part-pn">${p.number ? '#' + p.number : 'No P/N'}</span>
+        </div>`).join('') || '<div style="font-size:13px;color:var(--muted);">No parts selected</div>'}
+    </div>
+    <div class="summary-option rep">
+      <div class="summary-option-title">🔧 Option B — ${state.repTitle || 'Repair Option'}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">${state.repReason}</div>
+      ${repSelected.map(p => `
+        <div class="summary-part-line">
+          <span>${p.name}</span>
+          <span class="summary-part-pn">${p.number ? '#' + p.number : 'No P/N'}</span>
+        </div>`).join('') || '<div style="font-size:13px;color:var(--muted);">No parts selected</div>'}
+    </div>
+  `;
+
+  document.getElementById('summary-labor').innerHTML = `
+    <div class="summary-row">
+      <span class="label">Labor — ${state.laborHours} hr${state.laborHours !== 1 ? 's' : ''} @ $165/hr</span>
+      <span class="value">$${laborCost.toFixed(2)}</span>
+    </div>
+    <div class="summary-row">
+      <span class="label">Parts</span>
+      <span class="value" style="color:var(--muted);">Office to price from P/N</span>
+    </div>
+  `;
+
+  if (state.notes) {
+    document.getElementById('summary-notes-card').style.display = 'block';
+    document.getElementById('summary-notes').textContent = state.notes;
+  }
+}
+
+// ─── Send to office via EmailJS ───────────────────────────
+async function sendToOffice() {
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Sending...';
+  console.log('sendToOffice called');
+
+  const laborCost = state.laborHours * 165;
+  const recSelected = state.recParts.filter(p => p.checked);
+  const repSelected = state.repParts.filter(p => p.checked);
+  const now = new Date();
+  const timestamp = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+  const emailBody = `
+QUOTE REQUEST — ${timestamp}
+Submitted by: Russell (Field Tech)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CUSTOMER INFO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Customer: ${state.customer}
+${state.address ? 'Address: ' + state.address : ''}
+Job Type: ${state.jobType}
+${state.equipmentAge ? 'Equipment: ' + state.equipmentAge : ''}
+Urgency: ${state.urgency}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DIAGNOSIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${state.diagnosisText}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⭐ OPTION A — ${state.recTitle || 'RECOMMENDED REPLACEMENT'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Why: ${state.recReason}
+
+Parts needed (look up in Heritage / Pool 360, apply markup):
+${recSelected.map(p => `  • ${p.name}${p.number ? ' | P/N: ' + p.number : ''}${p.note ? ' | ' + p.note : ''}`).join('\n') || '  • No parts selected'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧 OPTION B — ${state.repTitle || 'REPAIR OPTION'} (May Work)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Why: ${state.repReason}
+
+Parts needed (look up in Heritage / Pool 360, apply markup):
+${repSelected.map(p => `  • ${p.name}${p.number ? ' | P/N: ' + p.number : ''}${p.note ? ' | ' + p.note : ''}`).join('\n') || '  • No parts selected'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LABOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${state.laborHours} hr${state.laborHours !== 1 ? 's' : ''} @ $165/hr = $${laborCost.toFixed(2)}
+(Add parts cost with markup to complete quote in SKIMMER)
+
+${state.notes ? '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nTECH NOTES\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' + state.notes : ''}
+  `.trim();
+
+
+  console.log('Starting email send loop, emails:', OFFICE_EMAILS);
+  try {
+    // Send to each email via EmailJS REST API directly
+    for (const email of OFFICE_EMAILS) {
+      console.log('Sending to:', email);
+      const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service_id: EMAILJS_SERVICE,
+          template_id: EMAILJS_TEMPLATE,
+          user_id: 'evH2fgFTpPvy7HR4I',
+          template_params: {
+            to_email: email,
+            to_name: 'Office',
+            from_name: 'Russell — Pool Field App',
+            subject: `Quote Request — ${state.customer} — ${state.urgency}`,
+            message: emailBody
+          }
+        })
+      });
+      const resText = await res.text();
+      console.log('EmailJS response for', email, ':', res.status, resText);
+      if (!res.ok) {
+        throw new Error('Status ' + res.status + ': ' + resText);
+      }
+    }
+    console.log('All emails sent successfully');
+    showScreen('screen-sent');
+    document.getElementById('sent-message').innerHTML =
+      `Quote request for <strong>${state.customer}</strong> sent to the office.<br><br>Both emails received it — they can now look up the part numbers, apply markup, and build the quote in SKIMMER.`;
+  } catch (err) {
+    console.error('Send failed:', err);
+    btn.disabled = false;
+    btn.innerHTML = '<span>📤</span> Send to Office';
+    alert('Email failed:\n\n' + (err.message || JSON.stringify(err)));
+  }
+}
+
+// ─── Start new ────────────────────────────────────────────
+function startNew() {
+  state = {
+    customer: '', address: '', jobType: '', urgency: '', equipmentAge: '',
+    findings: '', diagnosisText: '',
+    recTitle: '', recReason: '', recParts: [],
+    repTitle: '', repReason: '', repParts: [],
+    laborHours: 1, notes: '', chatHistory: []
+  };
+  ['customer-name','customer-address','equipment-age','findings','tech-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('job-type').value = '';
+  document.getElementById('job-urgency').value = '';
+  document.getElementById('labor-hours').value = 1;
+  document.getElementById('chat-container').innerHTML = '';
+  document.getElementById('confirm-card').style.display = 'none';
+  document.getElementById('correction-card').style.display = 'none';
+  document.getElementById('summary-notes-card').style.display = 'none';
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('send-btn').innerHTML = '<span>📤</span> Send to Office';
+  showScreen('screen-job');
+}
+</script>
+</body>
+</html>
