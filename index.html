@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hall's Pool Field App</title>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue: #0057FF; --blue-dark: #0040CC; --blue-light: #EEF3FF;
+    --surface: #F7F8FA; --card: #FFFFFF; --border: #E2E6ED;
+    --text: #111827; --muted: #6B7280;
+    --green: #059669; --green-light: #ECFDF5;
+    --amber: #D97706; --amber-light: #FFFBEB;
+    --red: #DC2626; --red-light: #FEF2F2;
+    --purple: #7C3AED; --purple-light: #F5F3FF;
+  }
+  body { font-family: 'Inter', sans-serif; background: var(--surface); color: var(--text); min-height: 100vh; max-width: 480px; margin: 0 auto; }
+
+  .header { background: var(--blue); color: white; padding: 16px 20px 14px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .header-icon { width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .header h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+  .header p { font-size: 12px; opacity: 0.75; margin-top: 1px; }
+  .tech-badge { background: rgba(255,255,255,0.18); border-radius: 20px; padding: 4px 10px; font-size: 12px; font-weight: 600; }
+
+  .screen { display: none; padding: 16px; padding-bottom: 100px; }
+  .screen.active { display: block; }
+
+  .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 16px; margin-bottom: 12px; }
+  .card-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 8px; }
+
+  input, textarea, select { width: 100%; font-family: 'Inter', sans-serif; font-size: 15px; color: var(--text); border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 12px; outline: none; transition: border-color 0.15s; background: white; }
+  input:focus, textarea:focus, select:focus { border-color: var(--blue); }
+  textarea { resize: none; line-height: 1.5; }
+
+  .btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 13px 16px; border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; border: none; transition: opacity 0.15s, transform 0.1s; }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--blue); color: white; }
+  .btn-primary:hover { background: var(--blue-dark); }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-secondary { background: white; color: var(--text); border: 1.5px solid var(--border); }
+  .btn-green { background: var(--green); color: white; }
+  .btn-sm { width: auto; padding: 7px 14px; font-size: 13px; border-radius: 7px; }
+
+  .tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tech-btn { padding: 10px 12px; border-radius: 9px; border: 2px solid var(--border); background: white; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer; text-align: left; transition: all 0.15s; }
+  .tech-btn.selected { border-color: var(--blue); background: var(--blue-light); color: var(--blue); font-weight: 600; }
+
+  /* Toggle switch */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+  .toggle-row span { font-size: 14px; font-weight: 500; }
+  .toggle { position: relative; width: 48px; height: 26px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 26px; cursor: pointer; transition: 0.2s; }
+  .toggle-slider:before { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+  .toggle input:checked + .toggle-slider { background: var(--blue); }
+  .toggle input:checked + .toggle-slider:before { transform: translateX(22px); }
+
+  /* Pad checklist */
+  .pad-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+  .pad-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--border); background: white; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s; }
+  .pad-item.checked { border-color: var(--purple); background: var(--purple-light); color: var(--purple); }
+  .pad-item-check { width: 16px; height: 16px; border-radius: 4px; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+  .pad-item.checked .pad-item-check { background: var(--purple); border-color: var(--purple); color: white; }
+
+  .ai-bubble { background: var(--blue-light); border-left: 3px solid var(--blue); border-radius: 0 10px 10px 0; padding: 12px 14px; margin-bottom: 12px; font-size: 14px; line-height: 1.6; color: #1a2a4a; }
+  .ai-bubble strong { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--blue); margin-bottom: 4px; }
+  .user-bubble { background: #f0f0f0; border-radius: 10px; padding: 10px 13px; margin-bottom: 10px; font-size: 14px; line-height: 1.5; }
+  .user-bubble strong { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 3px; }
+
+  .option-block { border-radius: 12px; border: 2px solid var(--border); padding: 14px; margin-bottom: 12px; }
+  .option-block.recommended { border-color: var(--blue); background: var(--blue-light); }
+  .option-block.repair { border-color: var(--amber); background: var(--amber-light); }
+  .option-tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 9px; border-radius: 20px; display: inline-block; margin-bottom: 8px; }
+  .tag-recommended { background: var(--blue); color: white; }
+  .tag-repair { background: var(--amber); color: white; }
+  .option-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .option-reason { font-size: 13px; color: var(--muted); margin-bottom: 10px; line-height: 1.45; }
+
+  /* Brand tabs */
+  .brand-tabs { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .brand-tab { padding: 5px 12px; border-radius: 20px; border: 1.5px solid var(--border); background: white; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; color: var(--muted); }
+  .brand-tab.active { border-color: var(--blue); background: var(--blue); color: white; }
+  .brand-tab.pentair.active { background: #1e3a8a; border-color: #1e3a8a; }
+  .brand-tab.jandy.active { background: #065f46; border-color: #065f46; }
+  .brand-tab.hayward.active { background: #92400e; border-color: #92400e; }
+
+  /* Pentair bundle banner */
+  .bundle-banner { background: linear-gradient(135deg, #1e3a8a, #1e40af); color: white; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; display: none; }
+  .bundle-banner.visible { display: block; }
+  .bundle-banner h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .bundle-banner p { font-size: 12px; opacity: 0.85; line-height: 1.4; }
+
+  .part-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.07); }
+  .part-item:last-child { border-bottom: none; }
+  .part-check { width: 22px; height: 22px; flex-shrink: 0; border: 2px solid var(--border); border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; margin-top: 1px; transition: all 0.15s; }
+  .part-check.checked { background: var(--blue); border-color: var(--blue); color: white; }
+  .part-info { flex: 1; }
+  .part-name { font-size: 14px; font-weight: 500; }
+  .part-number { font-size: 12px; color: var(--blue); margin-top: 2px; font-family: monospace; }
+  .part-brand { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
+  .brand-pentair { color: #1e3a8a; }
+  .brand-jandy { color: #065f46; }
+  .brand-hayward { color: #92400e; }
+  .brand-waterway { color: var(--purple); }
+  .part-detail { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+  .labor-block { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .labor-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .labor-block-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .labor-block-label.rec { color: var(--blue); }
+  .labor-block-label.rep { color: var(--amber); }
+  .labor-row { display: flex; align-items: center; gap: 10px; }
+  .labor-row label { font-size: 14px; font-weight: 500; white-space: nowrap; }
+  .labor-row input { max-width: 75px; text-align: center; }
+  .labor-row span { font-size: 13px; color: var(--muted); }
+
+  .plumb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .plumb-field label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+
+  /* Upsell flags */
+  .upsell-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .upsell-item:last-child { border-bottom: none; }
+  .upsell-check { width: 22px; height: 22px; flex-shrink: 0; border: 2px solid var(--border); border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; transition: all 0.15s; }
+  .upsell-check.checked { background: var(--purple); border-color: var(--purple); color: white; }
+  .upsell-label { font-size: 14px; font-weight: 500; flex: 1; }
+  .upsell-sub { font-size: 12px; color: var(--muted); }
+
+  .summary-row { display: flex; justify-content: space-between; font-size: 14px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-row .label { color: var(--muted); }
+  .summary-row .value { font-weight: 500; }
+
+  .summary-option { border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+  .summary-option.rec { background: var(--blue-light); border: 1.5px solid var(--blue); }
+  .summary-option.rep { background: var(--amber-light); border: 1.5px solid var(--amber); }
+  .summary-option-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .summary-option.rec .summary-option-title { color: var(--blue); }
+  .summary-option.rep .summary-option-title { color: var(--amber); }
+  .summary-part-line { font-size: 13px; padding: 4px 0; border-bottom: 1px solid rgba(0,0,0,0.06); display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+  .summary-part-line:last-child { border-bottom: none; }
+  .summary-part-pn { font-family: monospace; font-size: 12px; color: var(--blue); flex-shrink: 0; }
+
+  .upsell-summary { background: var(--purple-light); border: 1.5px solid var(--purple); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+  .upsell-summary-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--purple); margin-bottom: 8px; }
+  .upsell-line { font-size: 13px; padding: 3px 0; color: #4c1d95; }
+
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .pill-blue { background: var(--blue-light); color: var(--blue); }
+  .pill-amber { background: var(--amber-light); color: var(--amber); }
+  .pill-red { background: var(--red-light); color: var(--red); }
+
+  .sent-icon { width: 64px; height: 64px; background: var(--green-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto 16px; }
+  .sent-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 24px 20px; text-align: center; }
+  .sent-card h2 { font-size: 20px; margin-bottom: 8px; }
+  .sent-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 18px 0 8px; }
+  .bottom-bar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--surface); padding: 12px 16px 24px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="header-icon">🌊</div>
+    <div><h1>Hall's Pool</h1><p>Field Diagnosis & Quote</p></div>
+  </div>
+  <div class="tech-badge" id="header-tech">Select Tech</div>
+</div>
+
+<!-- SCREEN 1: Job Info -->
+<div class="screen active" id="screen-job">
+  <p class="section-title">Who's submitting this?</p>
+  <div class="card">
+    <div class="tech-grid">
+      <button class="tech-btn" onclick="selectTech('Russell Geil')">Russell Geil</button>
+      <button class="tech-btn" onclick="selectTech('Isaac Hess')">Isaac Hess</button>
+      <button class="tech-btn" onclick="selectTech('Jayden Stout')">Jayden Stout</button>
+      <button class="tech-btn" onclick="selectTech('Samuel Magdaleno')">Samuel Magdaleno</button>
+      <button class="tech-btn" onclick="selectTech('Kaleb Hall')">Kaleb Hall</button>
+    </div>
+  </div>
+
+  <p class="section-title">Job Details</p>
+  <div class="card">
+    <div class="card-label">Customer Name</div>
+    <input type="text" id="customer-name" placeholder="e.g. John Smith" />
+  </div>
+  <div class="card">
+    <div class="card-label">Address</div>
+    <input type="text" id="customer-address" placeholder="123 Oak Street" />
+  </div>
+  <div class="info-grid">
+    <div class="card">
+      <div class="card-label">Type</div>
+      <select id="job-type">
+        <option value="">Select...</option>
+        <option>Pool</option>
+        <option>Spa</option>
+        <option>Pool + Spa Combo</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="card-label">Urgency</div>
+      <select id="job-urgency">
+        <option value="">Select...</option>
+        <option>Can wait</option>
+        <option>This week</option>
+        <option>Urgent</option>
+      </select>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-label">Equipment & Approximate Age</div>
+    <input type="text" id="equipment-age" placeholder="e.g. Pentair pump ~5 yrs, Hayward heater ~8 yrs" />
+  </div>
+
+  <!-- Existing equipment brand -->
+  <div class="card">
+    <div class="card-label">Existing Equipment Brand</div>
+    <select id="existing-brand">
+      <option value="pentair">Pentair</option>
+      <option value="jandy">Jandy</option>
+      <option value="hayward">Hayward (existing — will match)</option>
+      <option value="mixed">Mixed / Unknown</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <div class="card-label">What did you find?</div>
+    <textarea id="findings" rows="4" placeholder="Describe what you found — symptoms, sounds, error codes, what you tested..."></textarea>
+  </div>
+
+  <!-- Upgrade toggle -->
+  <div class="card">
+    <div class="toggle-row">
+      <span>Customer open to upgrades?</span>
+      <label class="toggle">
+        <input type="checkbox" id="upgrade-toggle" onchange="toggleUpgradeSection()" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Pad assessment — shown when upgrade toggle is on -->
+  <div id="pad-assessment" style="display:none">
+    <div class="card">
+      <div class="card-label">What else did you see on the pad?</div>
+      <div class="pad-grid" id="pad-grid">
+        <div class="pad-item" onclick="togglePad(this,'aging-heater')" data-key="aging-heater">
+          <div class="pad-item-check"></div>🔥 Aging heater
+        </div>
+        <div class="pad-item" onclick="togglePad(this,'aging-filter')" data-key="aging-filter">
+          <div class="pad-item-check"></div>🌀 Aging filter
+        </div>
+        <div class="pad-item" onclick="togglePad(this,'no-automation')" data-key="no-automation">
+          <div class="pad-item-check"></div>📱 No app control
+        </div>
+        <div class="pad-item" onclick="togglePad(this,'chlorine-tabs')" data-key="chlorine-tabs">
+          <div class="pad-item-check"></div>🧪 On chlorine tabs
+        </div>
+        <div class="pad-item" onclick="togglePad(this,'old-lighting')" data-key="old-lighting">
+          <div class="pad-item-check"></div>💡 Old lighting
+        </div>
+        <div class="pad-item" onclick="togglePad(this,'no-cleaner')" data-key="no-cleaner">
+          <div class="pad-item-check"></div>🤖 No auto cleaner
+        </div>
+        <div class="pad-item" onclick="togglePad(this,'pool-rough')" data-key="pool-rough">
+          <div class="pad-item-check"></div>🌊 Pool needs cleanup
+        </div>
+        <div class="pad-item" onclick="togglePad(this,'aging-pump')" data-key="aging-pump">
+          <div class="pad-item-check"></div>⚙️ Second aging pump
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <div class="card-label">Additional upgrade notes</div>
+        <textarea id="upgrade-notes" rows="2" placeholder="Anything else worth flagging for the office..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <button class="btn btn-primary" onclick="startDiagnosis()" id="diagnose-btn">
+      <span>🔍</span> Diagnose with AI
+    </button>
+  </div>
+</div>
+
+<!-- SCREEN 2: AI Diagnosis -->
+<div class="screen" id="screen-diagnosis">
+  <p class="section-title">AI Diagnosis</p>
+  <div id="chat-container"></div>
+  <div class="card" id="confirm-card" style="display:none">
+    <div class="card-label">Does this match what you found?</div>
+    <div style="display:flex; gap:8px; margin-top:4px;">
+      <button class="btn btn-primary btn-sm" onclick="confirmDiagnosis(true)">✓ Yes, looks right</button>
+      <button class="btn btn-secondary btn-sm" onclick="confirmDiagnosis(false)">✗ Not quite</button>
+    </div>
+  </div>
+  <div class="card" id="correction-card" style="display:none">
+    <div class="card-label">What did I get wrong?</div>
+    <textarea id="correction-text" rows="3" placeholder="Tell me more about what you're seeing..."></textarea>
+    <div style="margin-top:8px">
+      <button class="btn btn-primary btn-sm" onclick="sendCorrection()">Update diagnosis</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 3: Parts & Labor -->
+<div class="screen" id="screen-parts">
+
+  <!-- Pentair bundle banner -->
+  <div class="bundle-banner" id="bundle-banner">
+    <h4>🏆 Pentair Bundle Opportunity</h4>
+    <p>Multiple Pentair items selected. Remind the customer: bundling Pentair equipment qualifies for a <strong>3-Year Parts & Labor Warranty</strong> — mention this on the quote call.</p>
+  </div>
+
+  <p class="section-title">⭐ Option A — Recommended</p>
+  <div class="option-block recommended">
+    <span class="option-tag tag-recommended">Recommended</span>
+    <div class="option-title" id="rec-title">Full Replacement</div>
+    <div class="option-reason" id="rec-reason"></div>
+    <div class="brand-tabs" id="rec-brand-tabs"></div>
+    <div id="rec-parts-list"></div>
+  </div>
+
+  <p class="section-title">🔧 Option B — Repair</p>
+  <div class="option-block repair">
+    <span class="option-tag tag-repair">May Work</span>
+    <div class="option-title" id="rep-title">Targeted Repair</div>
+    <div class="option-reason" id="rep-reason"></div>
+    <div id="rep-parts-list"></div>
+  </div>
+
+  <p class="section-title">Labor Hours</p>
+  <div class="card">
+    <div class="labor-block">
+      <div class="labor-block-label rec">Option A — Replacement Labor</div>
+      <div class="labor-row">
+        <label>Hours:</label>
+        <input type="number" id="labor-hours-rec" value="2" min="0.5" max="20" step="0.5" />
+        <span>hrs @ $165/hr</span>
+      </div>
+    </div>
+    <div class="labor-block">
+      <div class="labor-block-label rep">Option B — Repair Labor</div>
+      <div class="labor-row">
+        <label>Hours:</label>
+        <input type="number" id="labor-hours-rep" value="1" min="0.5" max="20" step="0.5" />
+        <span>hrs @ $140/hr</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="section-title">Plumbing (if applicable)</p>
+  <div class="card">
+    <div class="card-label">Estimate plumbing work needed</div>
+    <div class="plumb-grid">
+      <div class="plumb-field"><label>Est. plumb time (hrs)</label><input type="number" id="plumb-hours" value="0" min="0" max="20" step="0.5" /></div>
+      <div class="plumb-field"><label>3-way valves</label><input type="number" id="plumb-3way" value="0" min="0" max="20" /></div>
+      <div class="plumb-field"><label>2-way valves</label><input type="number" id="plumb-2way" value="0" min="0" max="20" /></div>
+      <div class="plumb-field"><label>Union fittings</label><input type="number" id="plumb-unions" value="0" min="0" max="20" /></div>
+    </div>
+    <div style="margin-top:10px">
+      <div class="card-label">Other plumbing notes</div>
+      <textarea id="plumb-notes" rows="2" placeholder="e.g. tight pad, needs flex PVC, custom layout..."></textarea>
+    </div>
+  </div>
+
+  <!-- Upsell flags — only shown if upgrade toggle was on -->
+  <div id="upsell-section" style="display:none">
+    <p class="section-title">💰 Upsell Opportunities</p>
+    <div class="card">
+      <div class="card-label">Check what to flag for the office</div>
+      <div id="upsell-list"></div>
+    </div>
+  </div>
+
+  <p class="section-title">Tech Notes</p>
+  <div class="card">
+    <textarea id="tech-notes" rows="3" placeholder="Access issues, customer concerns, anything else the office should know..."></textarea>
+  </div>
+
+  <div class="bottom-bar">
+    <button class="btn btn-primary" onclick="goToSummary()">Review & Send to Office →</button>
+  </div>
+</div>
+
+<!-- SCREEN 4: Summary -->
+<div class="screen" id="screen-summary">
+  <p class="section-title">Quote Summary</p>
+  <div class="card" id="summary-job-info"></div>
+  <p class="section-title">Diagnosis</p>
+  <div class="card" id="summary-diagnosis" style="font-size:14px; line-height:1.6; color:#1a2a4a;"></div>
+  <p class="section-title">Quote Options</p>
+  <div id="summary-options"></div>
+  <p class="section-title">Labor</p>
+  <div class="card" id="summary-labor"></div>
+  <div class="card" id="summary-plumb-card" style="display:none">
+    <div class="card-label">Plumbing</div>
+    <div id="summary-plumb" style="font-size:14px; color:var(--muted); line-height:1.6;"></div>
+  </div>
+  <div id="summary-upsell-card" style="display:none">
+    <p class="section-title">💰 Upsell Opportunities</p>
+    <div class="upsell-summary" id="summary-upsell"></div>
+  </div>
+  <div class="card" id="summary-notes-card" style="display:none">
+    <div class="card-label">Tech Notes</div>
+    <div id="summary-notes" style="font-size:14px; color:var(--muted); line-height:1.5;"></div>
+  </div>
+  <div class="bottom-bar">
+    <button class="btn btn-green" onclick="sendToOffice()" id="send-btn">
+      <span>📤</span> Send to Office
+    </button>
+  </div>
+</div>
+
+<!-- SCREEN 5: Sent -->
+<div class="screen" id="screen-sent">
+  <div style="padding-top:40px">
+    <div class="sent-card">
+      <div class="sent-icon">✓</div>
+      <h2>Sent to Office</h2>
+      <p id="sent-message"></p>
+      <div style="margin-top:20px">
+        <button class="btn btn-primary" onclick="startNew()">Start New Job</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+emailjs.init('evH2fgFTpPvy7HR4I');
+const EMAILJS_SERVICE = 'service_kt140oi';
+const EMAILJS_TEMPLATE = 'template_v8zez9o';
+const OFFICE_EMAILS = ['MJHsolutions.utah@gmail.com', 'jay@hallspoolandspa.com'];
+
+const PAD_LABELS = {
+  'aging-heater': 'Aging heater — good candidate for Pentair bundle upgrade',
+  'aging-filter': 'Aging filter — good candidate for Pentair bundle upgrade',
+  'no-automation': 'No app/automation control — Pentair IntelliConnect upsell opportunity',
+  'chlorine-tabs': 'On chlorine tabs — salt system conversion opportunity',
+  'old-lighting': 'Old lighting — LED upgrade opportunity',
+  'no-cleaner': 'No automatic cleaner — robotic cleaner upsell',
+  'pool-rough': 'Pool needs cleanup — add startup/cleanup service to quote',
+  'aging-pump': 'Second aging pump on pad — flag for future replacement'
+};
+
+let state = {
+  tech: '', customer: '', address: '', jobType: '', urgency: '',
+  equipmentAge: '', existingBrand: 'pentair', findings: '',
+  upgradeOpen: false, padItems: [], upgradeNotes: '',
+  diagnosisText: '',
+  recTitle: '', recReason: '',
+  recPartsByBrand: {}, activeBrand: 'pentair',
+  repTitle: '', repReason: '', repParts: [],
+  laborHoursRec: 2, laborHoursRep: 1,
+  plumbHours: 0, plumb3way: 0, plumb2way: 0, plumbUnions: 0, plumbNotes: '',
+  upsellItems: [], notes: '', chatHistory: []
+};
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function selectTech(name) {
+  state.tech = name;
+  document.querySelectorAll('.tech-btn').forEach(b => b.classList.toggle('selected', b.textContent === name));
+  document.getElementById('header-tech').textContent = name.split(' ')[0];
+}
+
+function toggleUpgradeSection() {
+  const on = document.getElementById('upgrade-toggle').checked;
+  document.getElementById('pad-assessment').style.display = on ? 'block' : 'none';
+  state.upgradeOpen = on;
+}
+
+function togglePad(el, key) {
+  el.classList.toggle('checked');
+  const check = el.querySelector('.pad-item-check');
+  const isChecked = el.classList.contains('checked');
+  check.textContent = isChecked ? '✓' : '';
+  if (isChecked) { if (!state.padItems.includes(key)) state.padItems.push(key); }
+  else { state.padItems = state.padItems.filter(k => k !== key); }
+}
+
+async function startDiagnosis() {
+  if (!state.tech) { alert('Please select who is submitting this report.'); return; }
+  const customer = document.getElementById('customer-name').value.trim();
+  const jobType = document.getElementById('job-type').value;
+  const findings = document.getElementById('findings').value.trim();
+  if (!customer || !findings || !jobType) { alert('Please fill in customer name, job type, and your findings.'); return; }
+
+  state.customer = customer;
+  state.address = document.getElementById('customer-address').value.trim();
+  state.jobType = jobType;
+  state.urgency = document.getElementById('job-urgency').value;
+  state.equipmentAge = document.getElementById('equipment-age').value.trim();
+  state.existingBrand = document.getElementById('existing-brand').value;
+  state.findings = findings;
+  state.upgradeNotes = document.getElementById('upgrade-notes') ? document.getElementById('upgrade-notes').value.trim() : '';
+
+  const btn = document.getElementById('diagnose-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Analyzing...';
+
+  showScreen('screen-diagnosis');
+  document.getElementById('chat-container').innerHTML = '';
+  addUserBubble(`${state.tech} — ${findings}${state.equipmentAge ? '\nEquipment: ' + state.equipmentAge : ''}`);
+
+  const isSpa = state.jobType.toLowerCase().includes('spa');
+  const isHayward = state.existingBrand === 'hayward';
+
+  const systemPrompt = `You are an expert pool and spa repair technician assistant for Hall's Pool and Spa. Help field techs confirm diagnoses and build multi-brand quote options.
+
+BRAND PREFERENCES:
+- Hall's Pool is Pentair-first. Russell is Pentair and Jandy certified. Always list Pentair as the primary recommended brand.
+- Jandy is the secondary preferred brand.
+- Hayward: only include if existing equipment is Hayward (check field data).
+- For spa/hot tub pumps use: Waterway Executive, Aqua-Flo, LX Pump as brand options.
+
+DIAGNOSIS TONE: Professional and customer-ready. Direct and confident. No AI-sounding phrases like "it appears" or "it seems." State what failed, why it happened, and what it means for the customer. Written so it can be copied and sent directly to the customer.
+
+REPLACEMENT THRESHOLDS — always recommend replacement over repair when:
+- Pumps/motors: 4+ years old OR motor failure (humming, seized, capacitor, burned windings)
+- Heaters: 4+ years old OR heat exchanger/ignition/control board issues  
+- Filters: 4+ years old with recurring issues
+- Small parts (O-rings, seals, unions, fittings, gaskets, baskets): always repair — low cost, straightforward
+
+PENTAIR BUNDLE: If customer is replacing 2+ pieces of equipment, flag the 3-Year Parts & Labor Warranty opportunity.
+
+HALL'S POOL PRODUCT CATALOG — always recommend from this list first. Use exact product names and retail prices as shown. If the needed part is NOT in this catalog, still provide the best available part number from Heritage or Pool 360 so the office can look it up:
+
+PUMPS:
+  - Ultratemp® Heat Pump 108K BTU 230V | Retail: $7641.99
+  - WhisperFloXF® VS Pump 5 HP | Retail: $4960.99
+  - WhisperFloXF® High Performance Pump 5 HP 208-230V | Retail: $4816.99
+  - TriStar® VS Variable Speed Pump 2.7HP 115V/230V | Retail: $3200.99
+  - IntelliFloXF® Variable Speed Pump 3 HP 230V | Retail: $3142.99
+  - TriStar® VS 950 Variable Speed Pump 2.7HP 115/230V | Retail: $2752.99
+  - ePump™ VS 2.7 HP  115/230 VAC with SpeedSet Controller Preinstalled | Retail: $2748.99
+  - ePump™ Variable Speed Pump 2.7HP 115/230V | Retail: $2735.99
+  - IntelliFlo3® VSF Pump with Relay Board 3 HP 208-230V | Retail: $2608.99
+  - WhisperFlo® VST Variable Speed Pump 115/208-230V | Retail: $2435.99
+  - ePump™ Variable Speed Pump 2.2HP 115/230V | Retail: $2391.99
+  - VS FloPro™ Variable Speed Pump 2.7HP 115/230V without Controller | Retail: $2352.99
+  - Super Pump® VS 700 Pump 1.65 HP 115/230V | Retail: $2312.99
+  - WhisperFlo® High Performance Pump 2HP | Retail: $2180.99
+  - TriStar® VS 900 Variable Speed Pump 1.85HP 115/230V | Retail: $2103.99
+  - SuperFlo® VST Variable Speed Pump 2.2THP 115/230V | Retail: $1987.99
+  - VS FloPro™ Variable Speed Pump 1.85HP 115/230V without Controller | Retail: $1947.99
+  - IntelliFlo3® VSF Pool Pump with Relay Board 1.5 HP 115/208-230V | Retail: $1936.99
+  - VS FloPro™ Variable Speed Pump 1.65HP 230V without JEP-R Controller | Retail: $1512.99
+  - WhisperFlo® 1 Speed High Performance TEFC Pump 1.1 HP 115/208-230V | Retail: $1363.99
+  - SuperFlo 1 Speed High Performance Pump .69HHP 1.1THP | Retail: $1042.99
+  - Aqua-Flo Flo-Master XP2 Spa Pump 2.5HP 230V | Retail: $822.99
+  - Executive 48 Frame 2 Speed Spa Pump 3 HP 230V | Retail: $805.99
+  - Executive 48 Frame 2 Speed Spa Pump 4.5 HP 230V | Retail: $797.99
+  - Executive 56 Frame 2 Speed Spa Pump with 2" Intake/Discharge 3 HP 230V | Retail: $693.99
+  - 2-Speed Executive 56-Frame Pump 4HP 230V 60Hz 8' Cord, 2" Intake | Retail: $648.99
+  - 2 Speed Spa Pump without Feet 4HP 230V | Retail: $497.99
+  - IntelliFlo3® VSF Universal Touchscreen Add On Kit | Retail: $422.99
+  - 50' IntelliFlo® Communication Cable | Retail: $386.99
+  - Spa Pump 48 Frame 1 Speed 1/15HP 115V | Retail: $360.99
+  - E5 Laing Circulation Pump with 4' Cord 3/4" Barb | Retail: $327.99
+  - Variable Speed Pump Controler | Retail: $270.99
+  - 2" Wet End for 4 HP Executive 56-Frame Pump | Retail: $153.99
+  - Superflo® Impeller Assembly 2HP | Retail: $140.99
+  - Drain Plug for Pumps | Retail: $30.99
+  - Almond Drain Plug 5" x 1" | Retail: $15.99
+  - 1/4" Drain Plug with O-Ring | Retail: $14.99
+  - WhisperFlo® Black Drain Plug .25" | Retail: $12.99
+  - Drain Plug Assembly with O-Ring | Retail: $11.99
+  - Drain Plug O-Ring 1/16" | Retail: $6.99
+
+HEATERS:
+  - ETi® 400 High Efficiency Natural Gas Heater 400K | Retail: $14129.99
+  - ETi 250 High Efficiency Heater 250K BTU | Retail: $9751.99
+  - MasterTemp® Digital IID ASME Natural Gas Low NOx Pool & Spa Heater 400K BTU | Retail: $6843.99
+  - JXiQ™ ASME® Compliant Pool and Spa Heater Natural Gas 400K BTU | Retail: $6179.99
+  - MasterTemp® Digital IID ASME Natural Gas Low NOx Pool & Spa Heater 250K BTU | Retail: $6081.99
+  - MasterTemp® Natural Gas High Performance Heater 400HD BTU | Retail: $5661.99
+  - AVIA HD with NiTek Natural Gas Pool and Spa Heater, Model 404A | Retail: $5410.99
+  - JXiQ™ Pool and Spa Heater with VersaFlo™  Natural Gas 399K BTU | Retail: $5380.99
+  - MasterTemp® Natural Gas High Performance Heater 300K BTU | Retail: $5363.99
+  - Universal H-Series Natural Gas Heater 400K BTU 110/220V | Retail: $5357.99
+  - Universal HC Series Dual Fuel Heater 400K BTU | Retail: $5298.99
+  - JXi™ Natural Gas Pool and Spa Low-NOx Heater 400K BTU | Retail: $5238.99
+  - MasterTemp® Natural Gas High Performance Heater 400K BTU | Retail: $5195.99
+  - MasterTemp® Natural Gas High Performance Heater 250HD BTU | Retail: $4720.99
+  - AVIA HD with NiTek Natural Gas Pool and Spa Heater, Model 264A | Retail: $4517.99
+  - MasterTemp® Natural Gas High Performance Heater 250K BTU | Retail: $4120.99
+  - JXi™ Natural Gas Low-NOx Pool and Spa Heater 260K BTU | Retail: $4079.99
+  - Universal H-Series Natural Gas Heater 250K BTU 110/220V | Retail: $3813.99
+
+FILTERS:
+  - 36" Triton® C High Capacity Fiberglass Side Mount Sand Filter TR140C Almond | Retail: $2740.99
+  - 30" Triton® C High Capacity Fiberglass Side Mount Sand Filter TR100C Almond | Retail: $1923.99
+  - 30" Triton® II Side Mount Filter TR100 Almond | Retail: $1796.99
+  - 30" JS Side Mount Sand Filter | Retail: $1783.99
+  - Pipeline Filter for 35,000 gal Pool | Retail: $1236.99
+  - BLENDED GLASS FILTER MEDIA | Retail: $79.99
+  - 25 lb Grade-2 (Coarse) Activate Glass Filter Media | Retail: $78.99
+  - 25 lb Grade-1 (Fine) Activate Glass Filter Media | Retail: $78.99
+  - 1.5" Quad Filter Drain Cap Plug | Retail: $74.99
+  - 50lbs. Bag #20 Grit Pool Filter Sand | Retail: $13.99
+
+PUMP PARTS:
+  - Whisperflo® Intelliflo® Style Pump Wet End 3 HP with High Temp Unions | Retail: $382.99
+  - Impeller for WhisperFlo Pump 2HP | Retail: $193.99
+  - Impeller for WhisperFlo Pump 1 1/2HP | Retail: $193.99
+  - Impeller for WhisperFlo Pump 3HP | Retail: $193.99
+  - Impeller for WhisperFlo Pump 1HP | Retail: $193.99
+  - Pentair Superflo Pump Seal Kit | Retail: $76.99
+  - Whisperflo Pump Strainer Basket 8" | Retail: $37.99
+
+HEATER PARTS:
+  - Raypak 407A Low NOx Digital Natural Gas Heater #26 with Bronze Headers | Retail: $6191.99
+  - Combination Gas Control Valve Kit for MT Heater Burner System | Retail: $823.99
+  - Air Flow Switch for Max-E-Therm and MasterTemp Heater Electrical System | Retail: $324.99
+  - Natural Gas Pilot Assembly For Model 207A, 267A, 337A Low NOx IID Pool Heater | Retail: $285.99
+  - Stack Flue Sensor for Max-E-Therm and MasterTemp Heater Electrical System | Retail: $266.99
+  - Thermal Regulator Kit for Max-E-Therm and MasterTemp Heater Water System | Retail: $237.99
+  - Igniter with Gasket Kit for Max-E-Therm and MasterTemp Heater Electrical System | Retail: $196.99
+  - Water Pressure Switch for ETi 400 High Efficiency Heater | Retail: $194.99
+  - Flame Sensor for H-Series Heaters | Retail: $185.99
+  - Thermistor for Max-E-Therm and MasterTemp Heater Electrical System | Retail: $182.99
+  - Dual Voltage Transformer Kit for Max-E-Therm Heater Electrical System 115/230 V | Retail: $160.99
+  - Thermal Regulator with Clip for Max-E-Therm Heater Water System | Retail: $159.99
+  - High Limit Switch for Max-E-Therm and MasterTemp Heater Electrical System | Retail: $146.99
+  - Manifold By-Pass Valve Kit for Max-E-Therm Heater Water System | Retail: $134.99
+  - Natural Gas to Propane Conversion Kit for 400 Max-E-Therm Heater Burner System | Retail: $133.99
+  - 140 Degree Taped Automatic Gas Shut-Off Switch for Heater Electrical System | Retail: $117.99
+
+FILTER PARTS:
+  - 525 SqFt SwimClear™ Cartridge Filter | Retail: $2401.99
+  - 520 SqFt Clean and Clear® Plus Cartridge Filter | Retail: $2251.99
+  - 580 SqFt 4 Large Cartridge Filter System | Retail: $2201.99
+  - 580 SqFt 4 Cartridge Filter System | Retail: $2176.99
+  - 425 SqFt SwimClear™ Cartridge Filter | Retail: $1937.99
+  - 420 SqFt Clean and Clear® Plus Cartridge Filter | Retail: $1818.99
+  - 460 SqFt 4 Element Large Cartridge Filter | Retail: $1782.99
+  - 460 SqFt CV Cartridge Filter System | Retail: $1773.99
+  - 320 Sq Ft Clean & Clear® Plus Cartridge Filter | Retail: $1638.99
+  - 30" SFSM Side Mount Vertical Sand Filter with Unions | Retail: $1626.99
+  - 200 SqFt SwimClear™ Single Element Cartridge Filter | Retail: $1468.99
+  - 250 SqFt Cartridge Filter Small | Retail: $1347.99
+  - Tank Bottom Assembly CV Filter | Retail: $1203.99
+  - 150 SqFt Clean and Clear® RP Cartridge Filter | Retail: $1139.99
+  - XtremeBlue A2 C5025/C5030 4/Pk Filter Cartridge | Retail: $725.99
+  - XtremeBlue A7 CCP520 4/Pk Filter Cartridge | Retail: $718.99
+  - Quad Filter Clamp Kit with Tension Control | Retail: $601.99
+  - XtremeBlue A6 CCP420 4/Pk Filter Cartridge | Retail: $571.99
+  - Hi-Flow 2" Valve with Bulkhead Fittings for Quad D.E. and Sand Filters | Retail: $496.99
+  - 2" Side Mount Multi-Port Valve with Unions for SFSM Series Filters | Retail: $431.99
+  - ProGrid™ Vertical Grid DE Filter Manual Air Relief Assembly | Retail: $414.99
+  - 200 SqFt C200S SwimClear™ Replacement Cartridge Element | Retail: $398.99
+  - TA Tagelus 1-1/2" D Backwash Multiport Valve for Top Mount Sand Filter | Retail: $370.99
+  - XtremeBlue A10 CL580/CV580 Single Filter Cartridge | Retail: $257.99
+  - 1.25" Triton® Lateral Hub Assembly | Retail: $242.99
+  - XtremeBlue C3 100 sq ft C&C/Predator Single Filter Cartridge | Retail: $175.99
+  - Black Gauge/Air Release Valve Replacement Kit | Retail: $168.99
+  - 2" x 2.5" Black Valve Adapter Kit | Retail: $162.99
+  - Clean and Clear® Plus and FNS Tank O-Ring | Retail: $138.99
+  - Spring Barrel Nut Assembly | Retail: $118.99
+  - High Flow Manual Air Relief Valve | Retail: $81.99
+  - Triton® II Air Relief Tee Assembly | Retail: $70.99
+  - 2" x 2.5" Universal Half Unions | Retail: $69.99
+  - 1.5" MPT Black Drain Cap Plug with O-Ring | Retail: $47.99
+  - Air Bleeder Screw with O-Ring | Retail: $30.99
+
+
+PARTS SOURCING RULE:
+1. If part is in the catalog above → use exact name and retail price shown
+2. If part is NOT in the catalog → find the correct part number from Heritage/Pool 360 and flag it as "Not in SKIMMER catalog — look up at Heritage/Pool 360"
+
+RESPONSE FORMAT — follow exactly, no deviations:
+
+DIAGNOSIS:
+[2-3 sentences. Customer-ready. Professional and direct. No AI language.]
+
+OPTION_A_TITLE: [Full replacement title]
+OPTION_A_REASON: [1-2 sentences. Why replacement. Reference age and failure type.]
+BRAND_PART: pentair | [Exact product name from catalog or best match] | [P/N if not in catalog, or "In SKIMMER"] | [Retail price if in catalog, or "Look up at Heritage/Pool 360"]
+BRAND_PART: jandy | [Jandy equivalent] | [P/N] | [Note]
+[Only include hayward line if existing equipment is Hayward]
+[For spa jobs include waterway and aqua-flo lines]
+
+OPTION_B_TITLE: [Repair title]
+OPTION_B_REASON: [1-2 sentences. Honest caveat — may work but no guarantee given age/condition.]
+PART_B: [Exact part name from catalog or best match] | [P/N if not in catalog, or "In SKIMMER"] | [Price or "Look up"]
+
+DIAGNOSIS_COMPLETE`;
+
+  state.chatHistory = [{
+    role: 'user',
+    content: `Tech: ${state.tech}\nCustomer: ${state.customer}\nJob type: ${state.jobType}\nUrgency: ${state.urgency || 'not specified'}\nEquipment & age: ${state.equipmentAge || 'unknown'}\nExisting brand: ${state.existingBrand}\n\nField findings: ${findings}`
+  }];
+
+  await callAI(systemPrompt);
+  btn.disabled = false;
+  btn.innerHTML = '<span>🔍</span> Diagnose with AI';
+}
+
+async function callAI(systemPrompt) {
+  try {
+    const response = await fetch('/.netlify/functions/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1600, system: systemPrompt, messages: state.chatHistory })
+    });
+    const data = await response.json();
+    if (!data.content) throw new Error(JSON.stringify(data));
+    const text = data.content.map(b => b.text || '').join('');
+    state.chatHistory.push({ role: 'assistant', content: text });
+    parseAIResponse(text);
+    const cleanText = text
+      .replace(/DIAGNOSIS_COMPLETE/g, '')
+      .replace(/OPTION_A_TITLE:.*$/gm, '').replace(/OPTION_A_REASON:.*$/gm, '')
+      .replace(/OPTION_B_TITLE:.*$/gm, '').replace(/OPTION_B_REASON:.*$/gm, '')
+      .replace(/BRAND_PART:.*$/gm, '').replace(/PART_B:.*$/gm, '')
+      .replace(/DIAGNOSIS:\n?/g, '').replace(/\n{3,}/g, '\n\n').trim();
+    state.diagnosisText = cleanText;
+    addAIBubble(cleanText);
+    document.getElementById('confirm-card').style.display = 'block';
+  } catch (err) {
+    addAIBubble('⚠️ Connection issue. Check your signal and try again. (' + err.message + ')');
+  }
+}
+
+function parseAIResponse(text) {
+  const lines = text.split('\n');
+  let recParts = {}, repParts = [];
+  let recTitle = '', recReason = '', repTitle = '', repReason = '';
+  lines.forEach(line => {
+    if (line.startsWith('OPTION_A_TITLE:')) recTitle = line.replace('OPTION_A_TITLE:', '').trim();
+    else if (line.startsWith('OPTION_A_REASON:')) recReason = line.replace('OPTION_A_REASON:', '').trim();
+    else if (line.startsWith('OPTION_B_TITLE:')) repTitle = line.replace('OPTION_B_TITLE:', '').trim();
+    else if (line.startsWith('OPTION_B_REASON:')) repReason = line.replace('OPTION_B_REASON:', '').trim();
+    else if (line.startsWith('BRAND_PART:')) {
+      const p = line.replace('BRAND_PART:', '').trim().split('|');
+      const brand = (p[0]||'').trim().toLowerCase();
+      if (!recParts[brand]) recParts[brand] = [];
+      recParts[brand].push({ name: (p[1]||'').trim(), number: (p[2]||'').trim(), note: (p[3]||'').trim(), checked: true });
+    } else if (line.startsWith('PART_B:')) {
+      const p = line.replace('PART_B:', '').trim().split('|');
+      repParts.push({ name: (p[0]||'').trim(), number: (p[1]||'').trim(), note: (p[2]||'').trim(), checked: true });
+    }
+  });
+  if (recTitle) state.recTitle = recTitle;
+  if (recReason) state.recReason = recReason;
+  if (repTitle) state.repTitle = repTitle;
+  if (repReason) state.repReason = repReason;
+  if (Object.keys(recParts).length) state.recPartsByBrand = recParts;
+  if (repParts.length) state.repParts = repParts;
+  // Default active brand
+  if (state.recPartsByBrand['pentair']) state.activeBrand = 'pentair';
+  else state.activeBrand = Object.keys(state.recPartsByBrand)[0] || 'pentair';
+}
+
+function addAIBubble(text) {
+  const el = document.createElement('div');
+  el.className = 'ai-bubble';
+  el.innerHTML = `<strong>Diagnosis</strong>${text.replace(/\n/g, '<br>')}`;
+  document.getElementById('chat-container').appendChild(el);
+  el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+function addUserBubble(text) {
+  const el = document.createElement('div');
+  el.className = 'user-bubble';
+  el.innerHTML = `<strong>${state.tech || 'Tech'}</strong>${text.replace(/\n/g, '<br>')}`;
+  document.getElementById('chat-container').appendChild(el);
+}
+
+function confirmDiagnosis(correct) {
+  document.getElementById('confirm-card').style.display = 'none';
+  if (correct) { buildPartsScreen(); showScreen('screen-parts'); }
+  else { document.getElementById('correction-card').style.display = 'block'; }
+}
+
+async function sendCorrection() {
+  const correction = document.getElementById('correction-text').value.trim();
+  if (!correction) return;
+  document.getElementById('correction-card').style.display = 'none';
+  addUserBubble(correction);
+  state.chatHistory.push({ role: 'user', content: correction });
+  const sys = `You are an expert pool and spa repair technician assistant. Update diagnosis based on correction. Use same format: DIAGNOSIS:, OPTION_A_TITLE:, OPTION_A_REASON:, BRAND_PART: [brand] | [name] | [P/N] | [note], OPTION_B_TITLE:, OPTION_B_REASON:, PART_B:. End with DIAGNOSIS_COMPLETE.`;
+  await callAI(sys);
+  document.getElementById('correction-text').value = '';
+}
+
+function buildPartsScreen() {
+  document.getElementById('rec-title').textContent = state.recTitle || 'Full Replacement';
+  document.getElementById('rec-reason').textContent = state.recReason;
+  document.getElementById('rep-title').textContent = state.repTitle || 'Targeted Repair';
+  document.getElementById('rep-reason').textContent = state.repReason;
+  buildBrandTabs();
+  renderRecParts();
+  document.getElementById('rep-parts-list').innerHTML = renderRepParts(state.repParts);
+  checkBundleBanner();
+
+  // Upsell section
+  if (state.upgradeOpen && state.padItems.length > 0) {
+    document.getElementById('upsell-section').style.display = 'block';
+    state.upsellItems = [...state.padItems];
+    document.getElementById('upsell-list').innerHTML = state.padItems.map((key, i) => `
+      <div class="upsell-item">
+        <div class="upsell-check checked" onclick="toggleUpsell(${i})" id="upsell-${i}">✓</div>
+        <div>
+          <div class="upsell-label">${PAD_LABELS[key].split('—')[0].trim()}</div>
+          <div class="upsell-sub">${PAD_LABELS[key].split('—')[1] ? PAD_LABELS[key].split('—')[1].trim() : ''}</div>
+        </div>
+      </div>`).join('');
+  }
+}
+
+function buildBrandTabs() {
+  const brands = Object.keys(state.recPartsByBrand);
+  const brandNames = { pentair: '⭐ Pentair', jandy: 'Jandy', hayward: 'Hayward', waterway: 'Waterway', lx: 'LX Pump', flowmaster: 'Flowmaster' };
+  document.getElementById('rec-brand-tabs').innerHTML = brands.map(b => `
+    <button class="brand-tab ${b} ${b === state.activeBrand ? 'active' : ''}" onclick="switchBrand('${b}')">${brandNames[b] || b}</button>
+  `).join('');
+}
+
+function switchBrand(brand) {
+  state.activeBrand = brand;
+  document.querySelectorAll('.brand-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.brand-tab').forEach(t => { if (t.textContent.toLowerCase().includes(brand) || t.classList.contains(brand)) t.classList.add('active'); });
+  buildBrandTabs();
+  renderRecParts();
+  checkBundleBanner();
+}
+
+function renderRecParts() {
+  const parts = state.recPartsByBrand[state.activeBrand] || [];
+  if (!parts.length) { document.getElementById('rec-parts-list').innerHTML = `<div style="color:var(--muted);font-size:13px;padding:6px 0;">No parts for this brand.</div>`; return; }
+  document.getElementById('rec-parts-list').innerHTML = parts.map((p, i) => `
+    <div class="part-item">
+      <div class="part-check checked" onclick="toggleRecPart(${i})" id="rec-check-${i}">✓</div>
+      <div class="part-info">
+        <div class="part-name">${p.name}</div>
+        <div class="part-brand brand-${state.activeBrand}">${state.activeBrand.toUpperCase()}</div>
+        ${p.number ? `<div class="part-number"># ${p.number}</div>` : ''}
+        ${p.note ? `<div class="part-detail">${p.note}</div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function renderRepParts(parts) {
+  if (!parts.length) return `<div style="color:var(--muted);font-size:13px;padding:6px 0;">No parts identified.</div>`;
+  return parts.map((p, i) => `
+    <div class="part-item">
+      <div class="part-check checked" onclick="toggleRepPart(${i})" id="rep-check-${i}">✓</div>
+      <div class="part-info">
+        <div class="part-name">${p.name}</div>
+        ${p.number ? `<div class="part-number"># ${p.number}</div>` : ''}
+        ${p.note ? `<div class="part-detail">${p.note}</div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function toggleRecPart(i) {
+  const parts = state.recPartsByBrand[state.activeBrand];
+  parts[i].checked = !parts[i].checked;
+  const el = document.getElementById(`rec-check-${i}`);
+  el.className = `part-check ${parts[i].checked ? 'checked' : ''}`;
+  el.textContent = parts[i].checked ? '✓' : '';
+  checkBundleBanner();
+}
+function toggleRepPart(i) {
+  state.repParts[i].checked = !state.repParts[i].checked;
+  const el = document.getElementById(`rep-check-${i}`);
+  el.className = `part-check ${state.repParts[i].checked ? 'checked' : ''}`;
+  el.textContent = state.repParts[i].checked ? '✓' : '';
+}
+function toggleUpsell(i) {
+  const el = document.getElementById(`upsell-${i}`);
+  const key = state.padItems[i];
+  const isChecked = el.classList.contains('checked');
+  el.classList.toggle('checked');
+  el.textContent = !isChecked ? '✓' : '';
+  if (!isChecked) { if (!state.upsellItems.includes(key)) state.upsellItems.push(key); }
+  else { state.upsellItems = state.upsellItems.filter(k => k !== key); }
+}
+
+function checkBundleBanner() {
+  const isPentair = state.activeBrand === 'pentair';
+  const pentairCount = Object.keys(state.recPartsByBrand).filter(b => b === 'pentair').length;
+  const banner = document.getElementById('bundle-banner');
+  banner.classList.toggle('visible', isPentair && pentairCount > 0);
+}
+
+function goToSummary() {
+  state.laborHoursRec = parseFloat(document.getElementById('labor-hours-rec').value) || 2;
+  state.laborHoursRep = parseFloat(document.getElementById('labor-hours-rep').value) || 1;
+  state.plumbHours = parseFloat(document.getElementById('plumb-hours').value) || 0;
+  state.plumb3way = parseInt(document.getElementById('plumb-3way').value) || 0;
+  state.plumb2way = parseInt(document.getElementById('plumb-2way').value) || 0;
+  state.plumbUnions = parseInt(document.getElementById('plumb-unions').value) || 0;
+  state.plumbNotes = document.getElementById('plumb-notes').value.trim();
+  state.notes = document.getElementById('tech-notes').value.trim();
+  buildSummary();
+  showScreen('screen-summary');
+}
+
+function buildSummary() {
+  const urgencyColor = state.urgency === 'Urgent' ? 'pill-red' : state.urgency === 'This week' ? 'pill-amber' : 'pill-blue';
+  document.getElementById('summary-job-info').innerHTML = `
+    <div class="summary-row"><span class="label">Submitted by</span><span class="value">${state.tech}</span></div>
+    <div class="summary-row"><span class="label">Customer</span><span class="value">${state.customer}</span></div>
+    ${state.address ? `<div class="summary-row"><span class="label">Address</span><span class="value">${state.address}</span></div>` : ''}
+    <div class="summary-row"><span class="label">Type</span><span class="value">${state.jobType}</span></div>
+    ${state.equipmentAge ? `<div class="summary-row"><span class="label">Equipment</span><span class="value">${state.equipmentAge}</span></div>` : ''}
+    <div class="summary-row"><span class="label">Urgency</span><span class="value"><span class="pill ${urgencyColor}">${state.urgency || 'Not set'}</span></span></div>
+  `;
+  document.getElementById('summary-diagnosis').innerHTML = state.diagnosisText.replace(/\n/g, '<br>');
+
+  const activeParts = (state.recPartsByBrand[state.activeBrand] || []).filter(p => p.checked);
+  const repSelected = state.repParts.filter(p => p.checked);
+  const isPentair = state.activeBrand === 'pentair';
+
+  document.getElementById('summary-options').innerHTML = `
+    <div class="summary-option rec">
+      <div class="summary-option-title">⭐ Option A — ${state.recTitle || 'Recommended Replacement'} (${state.activeBrand.toUpperCase()})</div>
+      ${isPentair ? '<div style="font-size:12px;color:#1e3a8a;font-weight:600;margin-bottom:6px;">🏆 Pentair — 3-Year Parts & Labor Warranty if bundling equipment</div>' : ''}
+      <div style="font-size:12px;color:#1e40af;margin-bottom:8px;line-height:1.4;">${state.recReason}</div>
+      ${activeParts.map(p => `<div class="summary-part-line"><span>${p.name}</span><span class="summary-part-pn">${p.number ? '# ' + p.number : '—'}</span></div>`).join('') || '<div style="font-size:13px;color:var(--muted);">No parts selected</div>'}
+      <div style="font-size:13px;margin-top:8px;color:var(--blue);font-weight:600;">Labor: ${state.laborHoursRec} hrs @ $165/hr = $${(state.laborHoursRec*165).toFixed(2)}</div>
+    </div>
+    <div class="summary-option rep">
+      <div class="summary-option-title">🔧 Option B — ${state.repTitle || 'Repair'} (May Work)</div>
+      <div style="font-size:12px;color:#92400e;margin-bottom:8px;line-height:1.4;">${state.repReason}</div>
+      ${repSelected.map(p => `<div class="summary-part-line"><span>${p.name}</span><span class="summary-part-pn">${p.number ? '# ' + p.number : '—'}</span></div>`).join('') || '<div style="font-size:13px;color:var(--muted);">No parts selected</div>'}
+      <div style="font-size:13px;margin-top:8px;color:var(--amber);font-weight:600;">Labor: ${state.laborHoursRep} hrs @ $140/hr = $${(state.laborHoursRep*140).toFixed(2)}</div>
+    </div>
+  `;
+
+  document.getElementById('summary-labor').innerHTML = `
+    <div class="summary-row"><span class="label">Option A labor</span><span class="value">${state.laborHoursRec} hrs × $165 = $${(state.laborHoursRec*165).toFixed(2)}</span></div>
+    <div class="summary-row"><span class="label">Option B labor</span><span class="value">${state.laborHoursRep} hrs × $140 = $${(state.laborHoursRep*140).toFixed(2)}</span></div>
+    <div class="summary-row"><span class="label">Parts</span><span class="value" style="color:var(--muted);">Office to price from P/N</span></div>
+  `;
+
+  const hasPlumb = state.plumbHours > 0 || state.plumb3way > 0 || state.plumb2way > 0 || state.plumbUnions > 0 || state.plumbNotes;
+  if (hasPlumb) {
+    document.getElementById('summary-plumb-card').style.display = 'block';
+    let t = '';
+    if (state.plumbHours > 0) t += `Est. plumb time: ${state.plumbHours} hrs<br>`;
+    if (state.plumb3way > 0) t += `3-way valves: ${state.plumb3way}<br>`;
+    if (state.plumb2way > 0) t += `2-way valves: ${state.plumb2way}<br>`;
+    if (state.plumbUnions > 0) t += `Union fittings: ${state.plumbUnions}<br>`;
+    if (state.plumbNotes) t += `Notes: ${state.plumbNotes}`;
+    document.getElementById('summary-plumb').innerHTML = t;
+  }
+
+  if (state.upsellItems.length > 0) {
+    document.getElementById('summary-upsell-card').style.display = 'block';
+    document.getElementById('summary-upsell').innerHTML = `
+      <div class="upsell-summary-title">💰 Flag for Office — Upsell Opportunities</div>
+      ${state.upsellItems.map(k => `<div class="upsell-line">• ${PAD_LABELS[k]}</div>`).join('')}
+      ${state.upgradeNotes ? `<div class="upsell-line" style="margin-top:6px;font-style:italic;">Notes: ${state.upgradeNotes}</div>` : ''}
+    `;
+  }
+
+  if (state.notes) {
+    document.getElementById('summary-notes-card').style.display = 'block';
+    document.getElementById('summary-notes').textContent = state.notes;
+  }
+}
+
+async function sendToOffice() {
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Sending...';
+
+  const activeParts = (state.recPartsByBrand[state.activeBrand] || []).filter(p => p.checked);
+  const repSelected = state.repParts.filter(p => p.checked);
+  const now = new Date();
+  const timestamp = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  const hasPlumb = state.plumbHours > 0 || state.plumb3way > 0 || state.plumb2way > 0 || state.plumbUnions > 0 || state.plumbNotes;
+  const isPentair = state.activeBrand === 'pentair';
+
+  const emailBody = `
+QUOTE REQUEST — ${timestamp}
+Submitted by: ${state.tech}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CUSTOMER INFO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Customer: ${state.customer}
+${state.address ? 'Address: ' + state.address : ''}
+Job Type: ${state.jobType}
+${state.equipmentAge ? 'Equipment: ' + state.equipmentAge : ''}
+Existing Brand: ${state.existingBrand}
+Urgency: ${state.urgency || 'Not specified'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DIAGNOSIS (customer-ready)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${state.diagnosisText}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⭐ OPTION A — ${state.recTitle} (${state.activeBrand.toUpperCase()})
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${isPentair ? '🏆 PENTAIR BUNDLE: If customer is replacing multiple pieces of equipment, mention the 3-Year Parts & Labor Warranty.\n\n' : ''}Why: ${state.recReason}
+
+Parts (look up P/N in Heritage / Pool 360, apply markup):
+${activeParts.map(p => `  • ${p.name}${p.number ? ' | P/N: ' + p.number : ''}${p.note ? ' | ' + p.note : ''}`).join('\n') || '  • No parts selected'}
+
+Labor: ${state.laborHoursRec} hrs @ $165/hr = $${(state.laborHoursRec*165).toFixed(2)}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧 OPTION B — ${state.repTitle} (May Work)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Why: ${state.repReason}
+
+Parts (look up P/N in Heritage / Pool 360, apply markup):
+${repSelected.map(p => `  • ${p.name}${p.number ? ' | P/N: ' + p.number : ''}${p.note ? ' | ' + p.note : ''}`).join('\n') || '  • No parts selected'}
+
+Labor: ${state.laborHoursRep} hrs @ $140/hr = $${(state.laborHoursRep*140).toFixed(2)}
+
+${hasPlumb ? `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PLUMBING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${state.plumbHours > 0 ? 'Est. plumb time: ' + state.plumbHours + ' hrs\n' : ''}${state.plumb3way > 0 ? '3-way valves: ' + state.plumb3way + '\n' : ''}${state.plumb2way > 0 ? '2-way valves: ' + state.plumb2way + '\n' : ''}${state.plumbUnions > 0 ? 'Union fittings: ' + state.plumbUnions + '\n' : ''}${state.plumbNotes ? 'Notes: ' + state.plumbNotes : ''}` : ''}
+
+${state.upsellItems.length > 0 ? `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💰 UPSELL OPPORTUNITIES — Flag for Quote Call
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${state.upsellItems.map(k => '• ' + PAD_LABELS[k]).join('\n')}${state.upgradeNotes ? '\nNotes: ' + state.upgradeNotes : ''}` : ''}
+
+${state.notes ? `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nTECH NOTES\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${state.notes}` : ''}
+  `.trim();
+
+  try {
+    for (const email of OFFICE_EMAILS) {
+      const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service_id: EMAILJS_SERVICE,
+          template_id: EMAILJS_TEMPLATE,
+          user_id: 'evH2fgFTpPvy7HR4I',
+          template_params: {
+            to_email: email,
+            to_name: 'Office',
+            from_name: state.tech + " — Hall's Pool Field App",
+            subject: `Quote Request — ${state.customer} — ${state.urgency || 'No urgency set'}`,
+            message: emailBody
+          }
+        })
+      });
+      const resText = await res.text();
+      if (!res.ok) throw new Error('Status ' + res.status + ': ' + resText);
+    }
+    showScreen('screen-sent');
+    document.getElementById('sent-message').innerHTML =
+      `Quote request for <strong>${state.customer}</strong> sent by <strong>${state.tech}</strong>.<br><br>Office will look up parts, apply markup, and build the quote in SKIMMER.`;
+  } catch (err) {
+    btn.disabled = false;
+    btn.innerHTML = '<span>📤</span> Send to Office';
+    alert('Email failed:\n\n' + (err.message || JSON.stringify(err)));
+  }
+}
+
+function startNew() {
+  const prevTech = state.tech;
+  state = {
+    tech: prevTech, customer: '', address: '', jobType: '', urgency: '',
+    equipmentAge: '', existingBrand: 'pentair', findings: '',
+    upgradeOpen: false, padItems: [], upgradeNotes: '',
+    diagnosisText: '',
+    recTitle: '', recReason: '', recPartsByBrand: {}, activeBrand: 'pentair',
+    repTitle: '', repReason: '', repParts: [],
+    laborHoursRec: 2, laborHoursRep: 1,
+    plumbHours: 0, plumb3way: 0, plumb2way: 0, plumbUnions: 0, plumbNotes: '',
+    upsellItems: [], notes: '', chatHistory: []
+  };
+  ['customer-name','customer-address','equipment-age','findings','tech-notes','plumb-notes','upgrade-notes'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  document.getElementById('job-type').value = '';
+  document.getElementById('job-urgency').value = '';
+  document.getElementById('existing-brand').value = 'pentair';
+  document.getElementById('upgrade-toggle').checked = false;
+  document.getElementById('pad-assessment').style.display = 'none';
+  document.getElementById('upsell-section').style.display = 'none';
+  document.querySelectorAll('.pad-item').forEach(el => { el.classList.remove('checked'); el.querySelector('.pad-item-check').textContent = ''; });
+  document.getElementById('labor-hours-rec').value = 2;
+  document.getElementById('labor-hours-rep').value = 1;
+  ['plumb-hours','plumb-3way','plumb-2way','plumb-unions'].forEach(id => document.getElementById(id).value = 0);
+  document.getElementById('chat-container').innerHTML = '';
+  document.getElementById('confirm-card').style.display = 'none';
+  document.getElementById('correction-card').style.display = 'none';
+  document.getElementById('summary-notes-card').style.display = 'none';
+  document.getElementById('summary-plumb-card').style.display = 'none';
+  document.getElementById('summary-upsell-card').style.display = 'none';
+  document.getElementById('bundle-banner').classList.remove('visible');
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('send-btn').innerHTML = '<span>📤</span> Send to Office';
+  showScreen('screen-job');
+}
+</script>
+</body>
+</html>
